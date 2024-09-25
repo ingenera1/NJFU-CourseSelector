@@ -34,7 +34,7 @@ def get_public_course(cookie, timeout):
         'endJc': '',
         'skjc': '',
         'sfym': 'false',  # 过滤已满
-        'sfct': 'false',  # 过滤冲突
+        'sfct': 'true',  # 过滤冲突
         'szjylb': '',
         'sfxx': 'true',  # 过滤限选
         'skfs': '',
