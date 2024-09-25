@@ -106,6 +106,7 @@ class MainWindow(QWidget):
         super().__init__()
         self.init_ui()
         self.setFixedSize(1080, 680)
+        self.setWindowTitle('NJFU CourseSelector')
         self.course_type = self.ui1.radioButton.isChecked()
         self.class_num = self.ui1.lineEdit.text()
         self.spc_time = self.ui1.lineEdit_2.text()
