@@ -18,11 +18,9 @@ class FecthThread(QThread):
         # 启动定时
         try:
             target_time_str = self.settings['Time']
-            target_time = datetime.datetime.now().replace(hour=int(target_time_str.split(':')[0]),
-                                                          minute=int(target_time_str.split(':')[1]),
-                                                          second=0, microsecond=0)
+            target_time = datetime.datetime.strptime(target_time_str, "%H:%M").time()
             while True:
-                current_time = datetime.datetime.now()
+                current_time = datetime.datetime.now().time()
                 if current_time >= target_time:
                     break
                 print('等待中..')
@@ -58,7 +56,7 @@ class FecthThread(QThread):
                 self.data_fetched.emit(course_lis)  # 发送数据
 
         except ValueError:
-            print("错误", "请输入正确的目标时间格式（HH:MM）")
+            print("目标时间格式（HH:MM）错误,或cookie无效") 
 
 
 class FecthThread2(QThread):
@@ -121,7 +119,7 @@ class MainWindow(QWidget):
         self.stacked_widget = QStackedWidget(self)
 
         # UI 1
-        self.ui1 = uic.loadUi('./uis/1.ui')
+        self.ui1 = uic.loadUi('../uis/1.ui')
         self.stacked_widget.addWidget(self.ui1)
         self.switch_btn_1t2 = self.ui1.findChild(QPushButton, "pushButton_3")
         self.switch_btn_1t2.clicked.connect(self.show_ui2)
@@ -134,7 +132,7 @@ class MainWindow(QWidget):
         self.save_btn.clicked.connect(self.save)
 
         # UI 2
-        self.ui2 = uic.loadUi('./uis/2.ui')
+        self.ui2 = uic.loadUi('../uis/2.ui')
         self.stacked_widget.addWidget(self.ui2)
         self.text_browser_2 = self.ui1.findChild(QTextBrowser, "textBrowser")
 
@@ -152,7 +150,7 @@ class MainWindow(QWidget):
         self.table_widget = self.ui2.tableWidget
 
         # UI 3
-        self.ui3 = uic.loadUi('./uis/3.ui')
+        self.ui3 = uic.loadUi('../uis/3.ui')
         self.stacked_widget.addWidget(self.ui3)
         # self.text_browser = self.ui1.findChild(QTextBrowser, "textBrowser")
 
@@ -209,9 +207,7 @@ class MainWindow(QWidget):
 
         # 获取字典的键作为表头
         keys = self.fetched_data[0].keys()
-        print(keys)
         columns = ['课程名', '上课教师', '学分', '类型', '剩余']
-        print(columns)
         self.table_widget.setColumnCount(len(columns))
         self.table_widget.setHorizontalHeaderLabels(columns)
 
