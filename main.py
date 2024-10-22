@@ -134,7 +134,7 @@ class MainWindow(QWidget):
         self.save_btn.clicked.connect(self.save)
 
         # UI 2
-        self.ui2 = uic.loadUi('../uis/2.ui')
+        self.ui2 = uic.loadUi('./uis/2.ui')
         self.stacked_widget.addWidget(self.ui2)
         self.text_browser_2 = self.ui1.findChild(QTextBrowser, "textBrowser")
 
@@ -152,7 +152,7 @@ class MainWindow(QWidget):
         self.table_widget = self.ui2.tableWidget
 
         # UI 3
-        self.ui3 = uic.loadUi('../uis/3.ui')
+        self.ui3 = uic.loadUi('./uis/3.ui')
         self.stacked_widget.addWidget(self.ui3)
         # self.text_browser = self.ui1.findChild(QTextBrowser, "textBrowser")
 
