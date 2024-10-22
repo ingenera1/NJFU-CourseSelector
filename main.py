@@ -121,7 +121,7 @@ class MainWindow(QWidget):
         self.stacked_widget = QStackedWidget(self)
 
         # UI 1
-        self.ui1 = uic.loadUi('../uis/1.ui')
+        self.ui1 = uic.loadUi('./uis/1.ui')
         self.stacked_widget.addWidget(self.ui1)
         self.switch_btn_1t2 = self.ui1.findChild(QPushButton, "pushButton_3")
         self.switch_btn_1t2.clicked.connect(self.show_ui2)
