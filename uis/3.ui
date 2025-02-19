@@ -113,7 +113,7 @@
     </font>
    </property>
    <property name="text">
-    <string>NJFU CourseSelector v1.4</string>
+    <string>NJFU CourseSelector v1.5</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_2">
