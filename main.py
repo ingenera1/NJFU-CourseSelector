@@ -28,35 +28,39 @@ class FecthThread(QThread):
 
             # 获取公选课
             if self.settings['Type']:
+                get_verify(cookie=self.settings['Cookie'], timeout=self.settings['Timeout'])
                 course_lis = get_public_course(cookie=self.settings['Cookie'], timeout=self.settings['Timeout'])
                 if course_lis is None:
                     return
                 # 有预先指定的课程的情况
                 if self.settings['Expected'] != '':
+                    get_verify(cookie=self.settings['Cookie'], timeout=self.settings['Timeout'])
                     kchs = self.settings['Expected'].split('+')
                     for kch in kchs:
                         for course in course_lis:
                             if kch == course['kch']:
-                                return_msg = select_course(cookie=self.settings['Cookie'],
-                                                           id02=course['02id'],
-                                                           id04=course['04id'],
-                                                           name=course['Name'],
-                                                           is_public=True,
-                                                           timeout=self.settings['Timeout']
-                                                           )
-                                print(return_msg)
+                                select_course(cookie=self.settings['Cookie'],
+                                              id02=course['02id'],
+                                              id04=course['04id'],
+                                              name=course['Name'],
+                                              is_public=True,
+                                              timeout=self.settings['Timeout'],
+                                              is_loopmode=self.settings['isLoopMode']
+                                              )
                                 break
                 self.data_fetched.emit(course_lis)  # 发送数据
 
             # 获取体育课
             else:
-                course_lis = get_pe_course(cookie=self.settings['Cookie'], class_num=self.settings['ClassNum'], timeout=self.settings['Timeout'])
+                get_verify(cookie=self.settings['Cookie'], timeout=self.settings['Timeout'])
+                course_lis = get_pe_course(cookie=self.settings['Cookie'], class_num=self.settings['ClassNum'],
+                                           timeout=self.settings['Timeout'])
                 if course_lis is None:
                     return
                 self.data_fetched.emit(course_lis)  # 发送数据
 
         except ValueError:
-            print("目标时间格式（HH:MM）错误,或cookie无效") 
+            print("目标时间格式（HH:MM）错误,或cookie无效")
 
 
 class FecthThread2(QThread):
@@ -76,7 +80,8 @@ class FecthThread2(QThread):
 
         # 获取体育课
         else:
-            course_lis = get_pe_course(cookie=self.settings['Cookie'], class_num=self.settings['ClassNum'], timeout=self.settings['Timeout'])
+            course_lis = get_pe_course(cookie=self.settings['Cookie'], class_num=self.settings['ClassNum'],
+                                       timeout=self.settings['Timeout'])
             if course_lis is None:
                 return
             self.data_fetched.emit(course_lis)  # 发送数据
@@ -89,14 +94,14 @@ class SelectThread(QThread):
         self.settings = s
 
     def run(self):
-        return_msg = select_course(cookie=self.settings['Cookie'],
-                                   id02=self.data['02id'],
-                                   id04=self.data['04id'],
-                                   name=self.data['Name'],
-                                   is_public=self.settings['Type'],
-                                   timeout=self.settings['Timeout']
-                                   )
-        print(return_msg)
+        select_course(cookie=self.settings['Cookie'],
+                      id02=self.data['02id'],
+                      id04=self.data['04id'],
+                      name=self.data['Name'],
+                      is_public=self.settings['Type'],
+                      timeout=self.settings['Timeout'],
+                      is_loopmode=self.settings['isLoopMode']
+                      )
 
 
 class MainWindow(QWidget):
@@ -112,8 +117,10 @@ class MainWindow(QWidget):
         self.cookie = self.ui1.lineEdit_4.text()
         # self.fetch_interval = float(self.ui1.lineEdit_5.text())
         self.fetch_timeout = float(self.ui1.lineEdit_6.text())
+        self.is_loopmode = self.ui1.checkBox.isChecked()
 
         self.fetched_data = []  # 存储获取到的课程信息
+        self.threads = []  # 管理线程
 
     def init_ui(self):
         self.stacked_widget = QStackedWidget(self)
@@ -147,6 +154,8 @@ class MainWindow(QWidget):
         self.confirm_btn.clicked.connect(self.confirm)
         self.refresh_btn = self.ui2.refreshButton
         self.refresh_btn.clicked.connect(self.refresh)
+        self.end_btn = self.ui2.endButton
+        self.end_btn.clicked.connect(self.terminate_threads)
         self.table_widget = self.ui2.tableWidget
 
         # UI 3
@@ -180,8 +189,11 @@ class MainWindow(QWidget):
         self.spc_time = self.ui1.lineEdit_2.text()
         self.spc_courses = self.ui1.lineEdit_3.text()
         self.cookie = self.ui1.lineEdit_4.text()
+        strs = self.cookie.split('\n')
+        self.cookie = strs[1] if len(strs) > 1 else strs[0]
         # self.fetch_interval = float(self.ui1.lineEdit_5.text())
         self.fetch_timeout = float(self.ui1.lineEdit_6.text())
+        self.is_loopmode = self.ui1.checkBox.isChecked()
         self.text_browser.setText('已保存修改')
         self.text_browser.repaint()
 
@@ -195,11 +207,13 @@ class MainWindow(QWidget):
             'Time': self.spc_time,
             'Expected': self.spc_courses,
             # 'Interval': self.fetch_interval,
-            'Timeout': self.fetch_timeout
+            'Timeout': self.fetch_timeout,
+            'isLoopMode': self.is_loopmode
         }
         print(settings)
         self.fecth_thread = FecthThread(settings)
         self.fecth_thread.data_fetched.connect(self.update_fetched_data)
+        self.threads.append(self.fecth_thread)  # 添加到线程管理列表
         self.fecth_thread.start()
 
     def update_fetched_data(self, data):
@@ -243,9 +257,11 @@ class MainWindow(QWidget):
                 'Time': self.spc_time,
                 'Expected': self.spc_courses,
                 # 'Interval': self.fetch_interval,
-                'Timeout': self.fetch_timeout
+                'Timeout': self.fetch_timeout,
+                'isLoopMode': self.is_loopmode
             }
             self.select_thread = SelectThread(self.fetched_data[selected_row], settings)
+            self.threads.append(self.select_thread)  # 添加到线程管理列表
             self.select_thread.start()
         else:
             print('没有选中任何行')
@@ -263,7 +279,24 @@ class MainWindow(QWidget):
         }
         self.refresh_thread = FecthThread2(settings)
         self.refresh_thread.data_fetched.connect(self.update_fetched_data)
+        self.threads.append(self.refresh_thread)  # 添加到线程管理列表
         self.refresh_thread.start()
+
+    def terminate_threads(self):
+        # 终止所有活动线程
+        self.text_browser_2.setText("正在终止所有线程...")
+        self.text_browser_2.repaint()
+
+        # 安全终止所有线程
+        for thread in self.threads:
+            if thread.isRunning():
+                # thread.quit()  # 发送退出信号
+                # thread.wait()  # 等待线程退出
+                thread.terminate()
+
+        self.threads.clear()
+        self.text_browser_2.setText("所有线程已终止")
+        self.text_browser_2.repaint()
 
 
 if __name__ == '__main__':

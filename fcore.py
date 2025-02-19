@@ -1,13 +1,16 @@
+import json
 import re
 from collections import OrderedDict
 import requests
 import time
 
 
-def get_response(url, headers, data, timeout):
+def get_response(url, headers, data, timeout, rt):
     for attempt in range(100):
         try:
-            response = requests.get(url=url, headers=headers, params=data, timeout=timeout)
+            response = requests.get(url=url, headers=headers, params=data,
+                                    timeout=timeout) if rt == 0 else requests.post(url=url, headers=headers,
+                                                                                   params=data, timeout=timeout)
             response.raise_for_status()  # 检查响应状态码，如果出现错误会抛出异常
             return response
         except requests.exceptions.RequestException as e:
@@ -20,12 +23,24 @@ def get_response(url, headers, data, timeout):
                 return None
 
 
+def get_verify(cookie, timeout):
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0',
+        'Cookie': cookie,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Referer': 'https://jwxt.njfu.edu.cn/jsxsd/xsxk/xsxk_index?jx0502zbid=E50983AB90AE40E192140B09DBA1B931',
+    }
+    url = 'https://jwxt.njfu.edu.cn/jsxsd/xsxk/xsxk_index?jx0502zbid=E50983AB90AE40E192140B09DBA1B931'
+    get_response(url=url, headers=headers, data='', timeout=timeout, rt=0)
+    time.sleep(0.2)
+
+
 def get_public_course(cookie, timeout):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0',
         'Cookie': cookie,
         'X-Requested-With': 'XMLHttpRequest',
-        'Referer': 'http://jwxt.njfu.edu.cn/jsxsd/xsxkkc/comeInGgxxkxk',
+        'Referer': 'https://jwxt.njfu.edu.cn/jsxsd/xsxkkc/comeInGgxxkxk',
     }
     search_data = {
         'kcxx': '',
@@ -56,10 +71,12 @@ def get_public_course(cookie, timeout):
         'mDataProp_10': 'tsTskflMc',
         'mDataProp_11': 'czOper'
     }
-    url = f'http://jwxt.njfu.edu.cn/jsxsd/xsxkkc/xsxkGgxxkxk?kcxx=&skls=&skxq=&endJc=&skjc=&sfym={search_data["sfym"]}&sfct={search_data["sfct"]}&szjylb=&sfxx={search_data["sfxx"]}&skfs='
-    response = get_response(url=url, headers=headers, data=search_data, timeout=timeout)
-    if response.ok:
+    url = f'https://jwxt.njfu.edu.cn/jsxsd/xsxkkc/xsxkGgxxkxk?kcxx=&skls=&skxq=&endJc=&skjc=&sfym={search_data['sfym']}&sfct={search_data['sfct']}&szjylb=&sfxx={search_data['sfxx']}&skfs='
+    response = get_response(url=url, headers=headers, data=search_data, timeout=timeout, rt=1)
+    if (response is not None) and response.ok:
         dic = response.json()
+        # with open('course_data.json', 'w', encoding='utf-8') as f:
+        #     json.dump(dic, f, ensure_ascii=False)
         course_lis = []
         if 'aaData' in dic:
             for i, info in enumerate(dic['aaData']):
@@ -95,7 +112,7 @@ def get_pe_course(cookie, class_num, timeout):
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0',
         'Cookie': cookie,
         'X-Requested-With': 'XMLHttpRequest',
-        'Referer': 'http://jwxt.njfu.edu.cn/jsxsd/xsxkkc/comeInBxxk',
+        'Referer': 'https://jwxt.njfu.edu.cn/jsxsd/xsxkkc/comeInBxxk',
     }
     search_data = {
         '1': '1',
@@ -123,7 +140,7 @@ def get_pe_course(cookie, class_num, timeout):
         'mDataProp_13': 'czOper',
     }
 
-    response = get_response(url=url, headers=headers, data=search_data, timeout=timeout)
+    response = get_response(url=url, headers=headers, data=search_data, timeout=timeout, rt=1)
     if response is not None:
         dic = response.json()
         course_lis = []
@@ -139,7 +156,7 @@ def get_pe_course(cookie, class_num, timeout):
                 matches = re.findall(pattern, classes)
                 in_range = False
                 for match in matches:
-                    if (class_num >= match[0]) & (class_num <= match[1]):
+                    if (class_num >= match[0]) and (class_num <= match[1]):
                         in_range = True
                         break
                 if not in_range:
@@ -171,7 +188,7 @@ def get_pe_course(cookie, class_num, timeout):
         return None
 
 
-def select_course(cookie, id02, id04, name, is_public, timeout):
+def select_course(cookie, id02, id04, name, is_public, timeout, is_loopmode):
     referer_arg = 'Bxxk'
     url_arg = 'bxxk'
     if is_public:
@@ -182,7 +199,7 @@ def select_course(cookie, id02, id04, name, is_public, timeout):
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0',
         'Cookie': cookie,
         'X-Requested-With': 'XMLHttpRequest',
-        'Referer': f'http://jwxt.njfu.edu.cn/jsxsd/xsxkkc/comeIn{referer_arg}',
+        'Referer': f'https://jwxt.njfu.edu.cn/jsxsd/xsxkkc/comeIn{referer_arg}',
     }
     data = {
         'kcid': f'{id02}',
@@ -191,10 +208,18 @@ def select_course(cookie, id02, id04, name, is_public, timeout):
         'xkzy': '',
         'trjf': ''
     }
-    url = f'http://jwxt.njfu.edu.cn/jsxsd/xsxkkc/{url_arg}Oper?kcid={id02}&cfbs=null&jx0404id={id04}&xkzy=&trjf='
-    response = get_response(url=url, headers=headers, data=data, timeout=timeout)
-    result = response.json()
-    if 'success' in result:
-        return f'{name} {result['message']}'
-    else:
-        return 'Cookie已过期,请返回上一界面重新进入'
+    url = f'https://jwxt.njfu.edu.cn/jsxsd/xsxkkc/{url_arg}Oper?kcid={id02}&cfbs=null&jx0404id={id04}&xkzy=&trjf='
+
+    while True:
+        response = get_response(url=url, headers=headers, data=data, timeout=timeout, rt=0)
+        if response is None:
+            break
+        result = response.json()
+        if 'success' in result:
+            print(f'{name} {result['message']}')
+            if ({result['message']} == '选课成功') or (not is_loopmode):
+                break
+            time.sleep(0.8)
+        else:
+            print('Cookie已过期,请返回上一界面重新进入')
+            break
